@@ -1,0 +1,19 @@
+{
+  "framework": null,
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "rewrites": [
+    {
+      "source": "/api/anam/v1/engine/session",
+      "destination": "/api/anam-engine"
+    }
+  ],
+  "functions": {
+    "api/anam-session.ts": {
+      "maxDuration": 60
+    },
+    "api/anam-engine.ts": {
+      "maxDuration": 60
+    }
+  }
+}

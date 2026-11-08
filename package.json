@@ -1,0 +1,21 @@
+{
+  "name": "firsthaven3",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "preview": "node scripts/serve.mjs",
+    "typecheck": "tsc --project tsconfig.json",
+    "test": "node --test tests/*.test.mjs",
+    "test:browser": "python tests/anam-browser.py"
+  },
+  "dependencies": {
+    "@anam-ai/js-sdk": "4.29.1",
+    "@elevenlabs/client": "1.35.0"
+  },
+  "devDependencies": {
+    "@types/node": "24.19.2",
+    "esbuild": "0.28.2",
+    "typescript": "6.0.3"
+  }
+}
