@@ -68,7 +68,7 @@ export function createAnamHandler(env:Environment,{fetcher=fetch,quota,now=Date.
    const response=await fetcher('https://api.anam.ai/v1/auth/session-token',{
     method:'POST',headers:{Authorization:'Bearer '+env.ANAM_API_KEY,'Content-Type':'application/json'},redirect:'error',signal:AbortSignal.timeout(15000),
     body:JSON.stringify({maxSessions:1,expiresInSeconds:120,clientLabel:'first-haven3-fictional-preview',
-     personaConfig:{name:'Jessica — TEST',avatarId:env.ANAM_AVATAR_ID,avatarModel:'cara-4.1-express',maxSessionLengthSeconds:ANAM_DEMO_MAX_SECONDS,zeroDataRetention:env.VERCEL_ENV!=='preview'||env.ANAM_TEST_REPORT_RETENTION!=='approved',directorNotes:{presetStyle:'warm',expressivity:0.5}},
+     personaConfig:{name:'Jessica — TEST',avatarId:env.ANAM_AVATAR_ID,avatarModel:'cara-4.1-express',maxSessionLengthSeconds:ANAM_DEMO_MAX_SECONDS,zeroDataRetention:true,directorNotes:{presetStyle:'warm',expressivity:0.5}},
      environment:{elevenLabsAgentSettings:{agentId:env.ELEVENLABS_AGENT_ID,signedUrl:signed.signedUrl}},
      sessionOptions:{dataRetention:{recording:false,transcripts:false},videoWidth:768,videoHeight:1152,videoQuality:'auto'},
     }),
