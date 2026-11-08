@@ -75,7 +75,8 @@ try:
  with sync_playwright() as p:
   browser=p.chromium.launch(args=['--use-fake-device-for-media-stream','--use-fake-ui-for-media-stream'])
   for width,height in [(1440,1000),(1024,900),(768,1000),(390,844),(320,740),(844,390)]:
-   context=browser.new_context(viewport={'width':width,'height':height},permissions=['microphone'],reduced_motion='reduce')
+   touch=width<=520 or height<=390
+   context=browser.new_context(viewport={'width':width,'height':height},has_touch=touch,permissions=['microphone'],reduced_motion='reduce')
    context.add_init_script('''window.qaMicCalls=0;window.qaAudioContexts=[];window.qaCarrierStarts=0;
     const gum=navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices);navigator.mediaDevices.getUserMedia=(...args)=>{qaMicCalls++;return gum(...args)};
     const AC=AudioContext;window.AudioContext=class extends AC{constructor(...args){super(...args);qaAudioContexts.push(this)}createOscillator(){const n=super.createOscillator(),start=n.start.bind(n);n.start=(...args)=>{qaCarrierStarts++;return start(...args)};return n}};''')
@@ -89,12 +90,24 @@ try:
     route.fulfill(content_type='application/json',body=json.dumps({'sessionToken':'fixture-token','leaseToken':'a'*64} if body['action']=='start' else {'ended':True}))
    page.route('**/api/anam-session',api)
    page.route('**/api/assistant',lambda route:(legacy.append(route.request.url),route.abort()))
+   page.route('https://fonts.googleapis.com/**',lambda route:route.abort())
    page.goto(BASE);page.wait_for_timeout(200)
+   assert 'zero session data retention' in page.locator('#fh-voice-disclosure').text_content()
    assert not calls and not page.evaluate('window.qaStarts||0')
-   ctas=page.locator('a[data-open-escrow]:visible');assert ctas.count()==(2 if width>520 else 1)
-   for index in range(ctas.count()):
-    cta=ctas.nth(index)
-    cta.click();expect(page.locator('#fh-panel')).to_be_visible()
+   ctas=[page.locator('header a[data-open-escrow]'),page.locator('.hero a[data-open-escrow]')]
+   panel=page.locator('#fh-panel');panel.evaluate('(dialog) => { window.qaEscrowDialog = dialog; }')
+   for index,cta in enumerate(ctas):
+    expect(cta).to_be_visible()
+    assert cta.get_attribute('aria-controls')=='fh-panel'
+    starts_before=sum(call['action']=='start' for call in calls)
+    sdk_starts_before=page.evaluate('window.qaStarts||0')
+    if touch:
+     bounds=cta.bounding_box();assert bounds['height']>=44
+     cta.tap();page.touchscreen.tap(bounds['x']+bounds['width']/2,bounds['y']+bounds['height']/2)
+    else:
+     cta.dblclick()
+    expect(panel).to_be_visible()
+    assert panel.evaluate('(dialog) => dialog === window.qaEscrowDialog')
     expect(page.locator('.fh-connection')).to_contain_text('Connected to Jessica')
     expect(page.locator('#fh-anam-video')).to_be_visible()
     assert page.locator('#fh-panel .fh-character-portrait').count()==0
@@ -112,6 +125,8 @@ try:
     expect(page.locator('#fh-panel')).not_to_be_visible()
     page.wait_for_function('qaInput.getTracks().every(t=>t.readyState==="ended")')
     assert page.evaluate('qaTools.size')==0
+    assert sum(call['action']=='start' for call in calls)==starts_before+1
+    assert page.evaluate('qaStarts')==sdk_starts_before+1
    page.locator('.hero [data-open-escrow]').click();expect(page.locator('.fh-connection')).to_contain_text('Connected')
    # Exercise the same confirmation and client tool path as a spoken intake.
    page.evaluate("""async () => {
@@ -151,7 +166,7 @@ try:
    assert not legacy and not errors,errors
    assert len([c for c in calls if c['action']=='start'])-len(failed_starts)==len([c for c in calls if c['action']=='end'])
    assert not page.evaluate('document.documentElement.scrollWidth>innerWidth+1')
-   report.append({'viewport':[width,height],'allOpenEscrowButtons':ctas.count(),'centered':True,'avatarDiameter':round(bounds['width'],2),'portraitAspect':'1:1','errorGeometryUnchanged':True,'overlaysInsidePortrait':True,'voiceTextMuteEndFixture':True,'noPageLoadSession':True,'noLegacyConnection':True})
+   report.append({'viewport':[width,height],'allOpenEscrowButtons':len(ctas),'singleStartPerRepeatedActivation':True,'centered':True,'avatarDiameter':round(bounds['width'],2),'portraitAspect':'1:1','errorGeometryUnchanged':True,'overlaysInsidePortrait':True,'voiceTextMuteEndFixture':True,'noPageLoadSession':True,'noLegacyConnection':True})
    context.close()
   browser.close()
  (ROOT/'qa/anam-browser-results.json').write_text(json.dumps({'provider':'fixtures only','liveConversationVerified':False,'cases':report},indent=2))

@@ -170,7 +170,14 @@
     .steps div:nth-child(n+3){border-top:1px solid var(--rule);margin-top:1.4rem}
     .file{transform:none}
   }
-  @media (max-width:520px){ .steps{grid-template-columns:1fr} .steps div+div{border-left:0;border-top:1px solid var(--rule)} .bar .btn{display:none} }
+  @media (max-width:520px){
+    .steps{grid-template-columns:1fr}
+    .steps div+div{border-left:0;border-top:1px solid var(--rule)}
+    .bar{gap:.75rem}
+    .bar .logo{min-width:0}
+    .bar .logo img{width:100%;max-width:14.625rem;height:auto}
+    .bar .btn{flex:none;min-height:44px;padding-inline:.75rem;white-space:nowrap}
+  }
 </style>
 </head>
 <body>
