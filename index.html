@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>First Haven Escrow | Buena Park, California</title>
+<meta name="description" content="First Haven Escrow in Buena Park, CA. Neutral, careful escrow service for home sales, refinances and commercial closings.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Public+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#EEEDEA;
+    --paper-deep:#E2E0DA;
+    --ink:#121110;
+    --ink-soft:#4A463F;
+    --red:#EE111D;      /* brand red: logo, large marks */
+    --red-ink:#C80E19;  /* red used with text, passes 4.5:1 on paper */
+    --rule:#C9C6BC;
+    --display:"Newsreader", "Iowan Old Style", Georgia, serif;
+    --body:"Public Sans", system-ui, sans-serif;
+    --ease:cubic-bezier(.16,1,.3,1);
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--paper);color:var(--ink);font:400 1.0625rem/1.6 var(--body);-webkit-font-smoothing:antialiased}
+  ::selection{background:var(--red);color:#fff}
+  a{color:inherit;text-underline-offset:.22em;text-decoration-thickness:1px}
+  :focus-visible{outline:3px solid var(--ink);outline-offset:3px;border-radius:2px}
+  .wrap{max-width:1180px;margin:0 auto;padding:0 clamp(1.25rem,4vw,3rem)}
+  h1,h2,h3{font-family:var(--display);font-weight:500;line-height:1.04;margin:0;text-wrap:balance}
+
+  /* header */
+  header{border-bottom:1px solid var(--rule)}
+  .bar{display:flex;align-items:center;justify-content:space-between;gap:1.5rem;padding-block:1.1rem}
+  .logo{display:flex;align-items:center;gap:.8rem;text-decoration:none}
+  .logo .fh{width:2.6rem;height:2.6rem;background:var(--ink);color:var(--paper);display:grid;place-items:center;font:600 1.05rem/1 var(--display);letter-spacing:.02em}
+  .logo .word{display:grid;line-height:1}
+  .logo .first{font:600 .78rem/1 var(--body);letter-spacing:.14em}
+  .logo .haven{font:600 1.5rem/1 var(--display);color:var(--red);letter-spacing:.04em;margin:.12rem 0}
+  .logo .escrow{font:500 .7rem/1 var(--body);letter-spacing:.36em}
+  nav ul{display:flex;gap:1.75rem;list-style:none;margin:0;padding:0;font-size:.95rem;font-weight:500}
+  nav a{text-decoration:none;padding:.4rem 0;border-bottom:1px solid transparent}
+  nav a:hover{border-bottom-color:var(--ink)}
+  .btn{display:inline-flex;align-items:center;gap:.6rem;background:var(--ink);color:var(--paper);padding:.95rem 1.5rem;border-radius:2px;font-weight:600;font-size:1rem;text-decoration:none;border:1px solid var(--ink);transition:background .25s var(--ease),transform .25s var(--ease)}
+  .btn:hover{background:var(--red-ink);border-color:var(--red-ink)}
+  .btn:active{transform:translateY(1px)}
+  .btn.ghost{background:transparent;color:var(--ink)}
+  .btn.ghost:hover{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+  .bar .btn{padding:.65rem 1.1rem;font-size:.95rem}
+
+  /* hero */
+  .hero{display:grid;grid-template-columns:1.05fr .95fr;gap:clamp(2rem,6vw,5.5rem);align-items:center;padding-block:clamp(3rem,8vw,6.5rem) clamp(3.5rem,8vw,6rem)}
+  .hero h1{font-size:clamp(2.7rem,6.4vw,5.4rem);letter-spacing:-.025em}
+  .hero h1 em{font-style:normal;color:var(--red-ink)}
+  .hero p.lede{font-size:1.2rem;max-width:34rem;color:var(--ink-soft);margin:1.6rem 0 2.2rem}
+  .cta{display:flex;flex-wrap:wrap;gap:.8rem}
+  .hours{margin-top:2rem;font-size:.95rem;color:var(--ink-soft)}
+
+  /* the escrow file */
+  .file{background:#F8F7F4;border:1px solid var(--rule);box-shadow:0 1px 0 #fff inset,0 18px 40px -22px rgba(40,30,10,.35);padding:1.6rem 1.7rem 1.3rem;position:relative;transform:rotate(.6deg)}
+  .file-head{display:flex;justify-content:space-between;align-items:baseline;border-bottom:2px solid var(--ink);padding-bottom:.7rem;margin-bottom:.4rem}
+  .file-head strong{font:600 1.25rem/1 var(--display)}
+  .file-head span{font-size:.8rem;color:var(--ink-soft)}
+  .ledger{list-style:none;margin:0;padding:0}
+  .ledger li{display:grid;grid-template-columns:1fr auto;gap:1rem;align-items:center;padding:.8rem 0;border-bottom:1px dashed var(--rule);font-size:.98rem}
+  .ledger li:last-child{border-bottom:0}
+  .ledger .st{font:600 .78rem/1 var(--body);letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft)}
+  .ledger li.done .st{color:var(--ink)}
+  .ledger li.done .st::before{content:"";display:inline-block;width:.55rem;height:.55rem;background:var(--ink);margin-right:.5rem;border-radius:50%}
+  .ledger li.now .st{color:var(--red-ink)}
+  .ledger li.now .st::before{content:"";display:inline-block;width:.55rem;height:.55rem;border:2px solid var(--red-ink);margin-right:.5rem;border-radius:50%}
+  .file-foot{display:flex;justify-content:space-between;align-items:center;margin-top:.6rem;padding-top:.9rem;border-top:2px solid var(--ink);font-size:.82rem;color:var(--ink-soft)}
+  .stamp{position:absolute;right:1.4rem;top:-2.5rem;transform:rotate(-8deg);border:3px solid var(--red);color:var(--red-ink);font:600 .8rem/1.15 var(--body);letter-spacing:.14em;text-transform:uppercase;padding:.45rem .7rem;text-align:center;background:var(--paper);opacity:.95}
+
+  /* single authored moment: the ledger entries are recorded one by one */
+  @media (prefers-reduced-motion:no-preference){
+    .ledger li{opacity:0;transform:translateY(6px);animation:record .7s var(--ease) forwards}
+    .ledger li:nth-child(1){animation-delay:.25s}
+    .ledger li:nth-child(2){animation-delay:.6s}
+    .ledger li:nth-child(3){animation-delay:.95s}
+    .ledger li:nth-child(4){animation-delay:1.3s}
+    .ledger li:nth-child(5){animation-delay:1.65s}
+    .stamp{animation:thud .6s var(--ease) 2.1s backwards}
+    @keyframes record{to{opacity:1;transform:none}}
+    @keyframes thud{from{opacity:0;transform:rotate(-8deg) scale(1.5)}}
+  }
+
+  /* assurance strip */
+  .strip{background:var(--ink);color:var(--paper);padding-inline:max(clamp(1.25rem,4vw,3rem),calc((100% - 1180px)/2 + clamp(1.25rem,4vw,3rem)))}
+  .process,.contact{padding-inline:max(clamp(1.25rem,4vw,3rem),calc((100% - 1180px)/2 + clamp(1.25rem,4vw,3rem)))}
+  .strip .wrap,.process .wrap,.contact .wrap{padding-inline:0}
+  .strip .wrap{display:grid;grid-template-columns:repeat(3,1fr);gap:2rem;padding-top:2.2rem;padding-bottom:2.2rem}
+  .strip p{margin:0;font-size:1rem;color:#E4E2DC;max-width:22rem}
+  .strip strong{display:block;font:500 1.35rem/1.2 var(--display);color:#fff;margin-bottom:.35rem}
+
+  section{padding-block:clamp(3.5rem,8vw,6.5rem)}
+  .split{display:grid;grid-template-columns:.8fr 1.2fr;gap:clamp(2rem,6vw,5rem)}
+  h2{font-size:clamp(2rem,4.2vw,3.2rem);letter-spacing:-.02em}
+  .intro{color:var(--ink-soft);max-width:30rem;margin-top:1.1rem}
+
+  /* services: a ruled index, not a card grid */
+  .index{list-style:none;margin:0;padding:0;border-top:2px solid var(--ink)}
+  .index li{display:grid;grid-template-columns:1fr 1.3fr;gap:1.5rem;padding:1.5rem 0;border-bottom:1px solid var(--rule)}
+  .index h3{font-size:1.55rem}
+  .index p{margin:0;color:var(--ink-soft);max-width:34rem}
+
+  /* process */
+  .process{background:var(--paper-deep)}
+  .steps{display:grid;grid-template-columns:repeat(4,1fr);gap:0;margin-top:2.8rem;border-top:2px solid var(--ink)}
+  .steps div{padding:1.4rem}
+  .steps div+div{border-left:1px solid var(--rule)}
+  .steps h3{font-size:1.35rem;margin-bottom:.5rem}
+  .steps p{margin:0;font-size:.98rem;color:var(--ink-soft)}
+
+  /* faq */
+  details{border-bottom:1px solid var(--rule)}
+  details:first-of-type{border-top:2px solid var(--ink)}
+  summary{cursor:pointer;list-style:none;padding:1.25rem 3rem 1.25rem 0;font:500 1.3rem/1.3 var(--display);position:relative}
+  summary::-webkit-details-marker{display:none}
+  summary::after{content:"";position:absolute;right:.4rem;top:50%;width:.7rem;height:.7rem;border-right:2px solid var(--ink);border-bottom:2px solid var(--ink);transform:translateY(-70%) rotate(45deg);transition:transform .3s var(--ease)}
+  details[open] summary::after{transform:translateY(-30%) rotate(-135deg)}
+  details p{margin:0 0 1.4rem;max-width:40rem;color:var(--ink-soft)}
+
+  /* contact */
+  .contact{background:var(--ink);color:var(--paper)}
+  .contact h2{color:#fff}
+  .contact .grid{display:grid;grid-template-columns:1fr 1fr;gap:clamp(2rem,6vw,5rem);align-items:start}
+  .contact address{font-style:normal;font-size:1.15rem;line-height:1.8}
+  .contact a{color:#fff}
+  .contact .btn{background:var(--paper);color:var(--ink);border-color:var(--paper)}
+  .contact .btn:hover{background:var(--red-ink);border-color:var(--red-ink);color:#fff}
+  .contact .btn.ghost{background:transparent;color:var(--paper);border-color:#8A877F}
+  .contact .btn.ghost:hover{background:var(--paper);color:var(--ink)}
+  .contact :focus-visible{outline-color:#fff}
+  footer{padding:1.6rem 0;font-size:.85rem;color:var(--ink-soft);background:var(--paper)}
+  footer .wrap{display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap}
+
+  @media (max-width:900px){
+    nav{display:none}
+    .hero,.split,.contact .grid{grid-template-columns:1fr}
+    .strip .wrap{grid-template-columns:1fr;gap:1.4rem}
+    .index li{grid-template-columns:1fr;gap:.4rem}
+    .steps{grid-template-columns:1fr 1fr}
+    .steps div:nth-child(3){border-left:0}
+    .steps div:nth-child(n+3){border-top:1px solid var(--rule);margin-top:1.4rem}
+    .file{transform:none}
+  }
+  @media (max-width:520px){ .steps{grid-template-columns:1fr} .steps div+div{border-left:0;border-top:1px solid var(--rule)} .bar .btn{display:none} }
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap bar">
+    <a class="logo" href="#top" aria-label="First Haven Escrow, home">
+      <span class="fh" aria-hidden="true">FH</span>
+      <span class="word"><span class="first">FIRST</span><span class="haven">HAVEN</span><span class="escrow">ESCROW</span></span>
+    </a>
+    <nav aria-label="Main"><ul>
+      <li><a href="#services">Services</a></li>
+      <li><a href="#process">How it works</a></li>
+      <li><a href="#faq">FAQ</a></li>
+      <li><a href="#contact">Contact</a></li>
+    </ul></nav>
+    <a class="btn" href="#contact">Open an escrow</a>
+  </div>
+</header>
+
+<main id="top">
+  <div class="wrap hero">
+    <div>
+      <h1>Every signature in. Every dollar <em>accounted for.</em></h1>
+      <p class="lede">First Haven Escrow is the neutral party in the middle of your closing. We hold the documents and the funds, follow your instructions to the letter, and release both only when everyone has done their part.</p>
+      <div class="cta">
+        <a class="btn" href="#contact">Open an escrow</a>
+        <a class="btn ghost" href="tel:+17147868912">Call (714) 786-8912</a>
+      </div>
+      <p class="hours">Buena Park, California &middot; Monday to Friday, 9 to 5</p>
+    </div>
+
+    <aside class="file" aria-label="Illustration of an escrow file">
+      <div class="stamp" aria-hidden="true">Ready<br>to close</div>
+      <div class="file-head"><strong>Escrow file</strong><span>Sample, for illustration</span></div>
+      <ul class="ledger">
+        <li class="done"><span>Purchase agreement received</span><span class="st">Done</span></li>
+        <li class="done"><span>Earnest deposit confirmed</span><span class="st">Done</span></li>
+        <li class="done"><span>Title and lender conditions cleared</span><span class="st">Done</span></li>
+        <li class="done"><span>Buyer and seller documents signed</span><span class="st">Done</span></li>
+        <li class="now"><span>Funds disbursed, deed recorded</span><span class="st">Today</span></li>
+      </ul>
+      <div class="file-foot"><span>Prepared by First Haven Escrow</span><span>Page 1 of 1</span></div>
+    </aside>
+  </div>
+
+  <div class="strip"><div class="wrap">
+    <p><strong>Neutral by role.</strong>We work for the transaction, not for one side of it.</p>
+    <p><strong>Instructions in writing.</strong>Everything we release is released against signed instructions.</p>
+    <p><strong>A person who answers.</strong>Call the Buena Park office and talk to the team handling your file.</p>
+  </div></div>
+
+  <section id="services"><div class="wrap split">
+    <div>
+      <h2>Escrow for the transactions that matter most to you</h2>
+      <p class="intro">Whatever is changing hands, the job is the same: keep it safe and keep it moving.</p>
+    </div>
+    <ul class="index">
+      <li><h3>Home purchase and sale</h3><p>From opening escrow to the day keys change hands, for buyers, sellers and the agents between them.</p></li>
+      <li><h3>Refinance</h3><p>Lender documents, payoffs and signing coordinated so your new loan funds on schedule.</p></li>
+      <li><h3>Commercial and investment</h3><p>Multi-party closings with more moving parts, handled with the same written-instruction discipline.</p></li>
+      <li><h3>Questions before you start</h3><p>Not sure what you need yet? Call us before you sign anything and we will walk through it.</p></li>
+    </ul>
+  </div></section>
+
+  <section id="process" class="process"><div class="wrap">
+    <h2>What happens after you open escrow</h2>
+    <div class="steps">
+      <div><h3>You open the file</h3><p>Send us the signed purchase agreement and the contact details for both sides.</p></div>
+      <div><h3>We gather and verify</h3><p>Deposit, title, lender requirements and disclosures are collected in one place.</p></div>
+      <div><h3>Everyone signs</h3><p>We schedule signing and review the documents against the written instructions.</p></div>
+      <div><h3>We close and disburse</h3><p>Once conditions are met, funds go out, the deed is recorded and you are done.</p></div>
+    </div>
+  </div></section>
+
+  <section id="faq"><div class="wrap split">
+    <div>
+      <h2>Straight answers</h2>
+      <p class="intro">Short versions of what people ask us most. Call for anything specific to your file.</p>
+    </div>
+    <div>
+      <details><summary>What does an escrow officer actually do?</summary><p>We act as the neutral third party. We receive the deposit, documents and instructions from each side, make sure the conditions of the agreement are met, and then release funds and documents to the right people.</p></details>
+      <details><summary>When should I open escrow?</summary><p>As soon as you have a signed purchase agreement or loan commitment. Opening early gives us time to catch problems before they threaten your closing date.</p></details>
+      <details><summary>What will it cost?</summary><p>Fees depend on the size and type of the transaction. Call or email and we will give you a clear estimate for your situation.</p></details>
+    </div>
+  </div></section>
+
+  <section id="contact" class="contact"><div class="wrap grid">
+    <div>
+      <h2>Ready to open an escrow?</h2>
+      <p class="intro" style="color:#D6D3CB">Send us the agreement or call the office. We will take it from there.</p>
+      <div class="cta" style="margin-top:1.8rem">
+        <a class="btn" href="mailto:order@havenescrow.com">Email an escrow request</a>
+        <a class="btn ghost" href="tel:+17147868912">(714) 786-8912</a>
+      </div>
+    </div>
+    <address>
+      First Haven Escrow<br>
+      6301 Beach Blvd, Suite 204<br>
+      Buena Park, CA 90621<br>
+      <a href="tel:+17147868912">(714) 786-8912</a><br>
+      <a href="mailto:order@havenescrow.com">order@havenescrow.com</a><br>
+      Monday to Friday, 9am to 5pm
+    </address>
+  </div></section>
+</main>
+
+<footer><div class="wrap"><span>&copy; First Haven Escrow. Demo layout, not a published site.</span><span>Buena Park, California</span></div></footer>
+</body>
+</html>
