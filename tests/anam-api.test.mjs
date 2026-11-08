@@ -2,7 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {createAnamHandler,createAnamEngineHandler} from '../server/anam-api.ts';
-import {AGENT_SETUP,TEST_WEBHOOK_NAME,TEST_WEBHOOK_URL} from '../shared/agent-policy.ts';
+import {AGENT_SETUP,TESTER_AGENT_PROMPT,TEST_WEBHOOK_NAME,TEST_WEBHOOK_URL} from '../shared/agent-policy.ts';
+import {TESTER_INTRODUCTION} from '../shared/intake-model.ts';
 import {ANAM_DEMO_AVATAR_ID} from '../shared/anam-demo.ts';
 
 const BASE='https://test-preview.vercel.app';
@@ -69,6 +70,35 @@ test('Anam API and engine are disabled without the matching environment opt-in',
     const f=fixture(overrides);for(const handler of [f.start,f.engine])for(const method of ['GET','POST'])assert.equal((await handler(request(undefined,{method}))).status,404);
     assert.equal(f.state.calls.length,0);assert.equal(f.state.issuances,0);
   }
+});
+
+test('Public URL tester access is verified before reserving quota or contacting providers', async () => {
+  const code='Z'.repeat(43);
+  const f=fixture({VERCEL_ENV:'production',FIRST_HAVEN_ANAM_TESTER_DEMO:'true',ANAM_TESTER_ACCESS_CODE_SHA256:H(code),ANAM_TEST_REPORT_RETENTION:'approved'});
+  const verify={action:'verify_tester',accessCode:code};
+  assert.equal((await f.start(request(verify,{origin:'https://outside.example'}))).status,403);
+  assert.equal((await f.start(request({...verify,mode:'voice'}))).status,403);
+  assert.equal((await f.start(request({...verify,accessCode:'x'.repeat(43)}))).status,403);
+  assert.equal((await f.start(request(START))).status,403);
+  assert.equal((await f.start(request({...START,accessCode:'x'.repeat(43)}))).status,403);
+  assert.equal((await f.engine(engine())).status,403);
+  assert.deepEqual(await safe(await f.start(request(verify))),{authorized:true});
+  assert.equal(f.state.issuances,0);assert.equal(f.state.calls.length,0);
+  const unconfigured=fixture({VERCEL_ENV:'production',FIRST_HAVEN_ANAM_TESTER_DEMO:'true'});
+  assert.equal((await unconfigured.start(request(verify))).status,503);
+  assert.equal((await unconfigured.start(request({...START,accessCode:code}))).status,503);
+  assert.equal(unconfigured.state.calls.length,0);
+
+  assert.equal((await f.start(request({...START,accessCode:code}))).status,412);
+  assert.equal(minted(f.state).length,0,'Old agent greeting is rejected');
+  f.state.agent.conversation_config.agent.first_message=TESTER_INTRODUCTION;
+  f.state.agent.conversation_config.agent.prompt.prompt=TESTER_AGENT_PROMPT;
+  assert.equal((await f.start(request({...START,accessCode:code}))).status,200);
+  const body=JSON.parse(minted(f.state)[0].options.body);
+  assert.equal(body.clientLabel,'first-haven3-fictional-tester');
+  assert.equal(body.personaConfig.zeroDataRetention,false);
+  assert.deepEqual(body.sessionOptions.dataRetention,{recording:false,transcripts:false});
+  assert.ok(!JSON.stringify(body).includes(code));
 });
 
 test('A mismatched ElevenLabs version never signs or mints an Anam session', async () => {

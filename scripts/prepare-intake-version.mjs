@@ -1,10 +1,12 @@
 import { isDeepStrictEqual } from 'node:util';
-import { AGENT_PROMPT } from '../shared/agent-policy.ts';
+import { AGENT_PROMPT, TESTER_AGENT_PROMPT } from '../shared/agent-policy.ts';
+import { INTRODUCTION, TESTER_INTRODUCTION } from '../shared/intake-model.ts';
 import { createAssistantHandler } from '../server/assistant-api.ts';
 
 const env = process.env;
 const id = 'agent_0601m6pwks2ffjwtw76g0ppwk0ym';
-const name = 'firsthaven3-synthetic-names';
+const testerDemo = process.argv.includes('--tester');
+const name = testerDemo ? 'firsthaven3-tester-greeting' : 'firsthaven3-synthetic-names';
 if (env.VERCEL_ENV !== 'preview' || env.VERCEL_PROJECT_ID !== 'prj_uEwPrskHA8j8rMIEDTEAxuvim8X4'
     || env.FIRSTHAVEN3_PREPARE_INTAKE !== 'true' || !env.ELEVENLABS_API_KEY) {
   throw Error('Run only as an explicitly requested FirstHaven3 Preview setup with server credentials.');
@@ -27,25 +29,32 @@ async function request(path = '', payload) {
 
 const main = await request();
 if (!/^agtvrsn_[a-zA-Z0-9]+$/.test(main.version_id || '')) throw Error('Existing agent version unavailable.');
-const expected = structuredClone(main.conversation_config);
+const baseVersion = env.FIRSTHAVEN3_TESTER_PARENT_VERSION_ID || '';
+if (testerDemo && (!/^agtvrsn_[a-zA-Z0-9]+$/.test(baseVersion) || baseVersion === main.version_id)) throw Error('An isolated FirstHaven3 parent version is required.');
+const parent = testerDemo ? await request('?' + new URLSearchParams({ version_id: baseVersion })) : main;
+if (testerDemo && parent.version_id !== baseVersion) throw Error('The isolated parent version did not resolve.');
+const expected = structuredClone(parent.conversation_config);
 const previousPrompt = expected.agent?.prompt?.prompt;
 if (typeof previousPrompt !== 'string') throw Error('Existing intake prompt unavailable.');
-const onlyAllowedChange = previousPrompt
+const onlyAllowedChange = testerDemo ? previousPrompt : previousPrompt
   .replace('FIRST_HAVEN_TEST_INTAKE_V1', 'FIRST_HAVEN3_TEST_INTAKE_V1')
   .replace('names beginning with Test or ending with Example', 'fictional first and last names without any required prefix or suffix')
   .replace('Test Jordan Example', 'Jordan Smith');
 if (onlyAllowedChange.replace(/\r\n/g, '\n').trim() !== AGENT_PROMPT.replace(/\r\n/g, '\n').trim()) {
   throw Error('Existing intake prompt has drifted. No agent changes were made.');
 }
-expected.agent.prompt.prompt = AGENT_PROMPT;
+if (testerDemo && expected.agent.first_message !== INTRODUCTION) throw Error('Existing Preview greeting has drifted.');
+const approvedPrompt = testerDemo ? TESTER_AGENT_PROMPT : AGENT_PROMPT;
+expected.agent.prompt.prompt = approvedPrompt;
+if (testerDemo) expected.agent.first_message = TESTER_INTRODUCTION;
 const branches = await request('/branches');
 if (!Array.isArray(branches.results)) throw Error('ElevenLabs branch list unavailable.');
 let branch = branches.results.find(item => item.name === name && !item.is_archived);
 if (!branch) {
   const created = await request('/branches', {
-    parent_version_id: main.version_id, name,
-    description: 'FirstHaven3 protected fictional-name intake only. Do not route default traffic here.',
-    conversation_config: { agent: { prompt: { prompt: AGENT_PROMPT } } },
+    parent_version_id: parent.version_id, name,
+    description: 'FirstHaven3 fictional intake only. Do not route default traffic here.',
+    conversation_config: { agent: { prompt: { prompt: approvedPrompt }, ...(testerDemo ? { first_message: TESTER_INTRODUCTION } : {}) } },
   });
   branch = (await request('/branches')).results.find(item => item.id === created.created_branch_id);
 }
@@ -55,21 +64,21 @@ if (!branch || branch.id === main.branch_id || branch.current_live_percentage !=
 const candidate = await request('?' + new URLSearchParams({ branch_id: branch.id }));
 if (!/^agtvrsn_[a-zA-Z0-9]+$/.test(candidate.version_id || '') || candidate.version_id === main.version_id
     || !isDeepStrictEqual(candidate.conversation_config, expected)
-    || ['platform_settings','workflow','procedures','phone_numbers','whatsapp_accounts'].some(key => !isDeepStrictEqual(candidate[key], main[key]))) {
+    || ['platform_settings','workflow','procedures','phone_numbers','whatsapp_accounts'].some(key => !isDeepStrictEqual(candidate[key], parent[key]))) {
   throw Error('Branch configuration differs beyond the approved prompt. Do not deploy it.');
 }
 const origin = 'https://firsthaven3.vercel.app';
 const check = await createAssistantHandler({
   ...env, FIRST_HAVEN_ANAM_PREVIEW: 'false',
   ELEVENLABS_AGENT_ID: id, ELEVENLABS_AGENT_VERSION_ID: candidate.version_id,
-})(new Request(origin + '/api/anam-session', {
+}, fetch, testerDemo)(new Request(origin + '/api/anam-session', {
   method: 'POST',
   headers: { Origin: origin, 'Content-Type': 'application/json' },
   body: JSON.stringify({ action: 'start', mode: 'voice', testConsent: true }),
 }));
 if (!check.ok) throw Error('Pinned branch safety and signed URL check failed (HTTP ' + check.status + ').');
 const after = await request();
-if (after.version_id !== main.version_id || after.branch_id !== main.branch_id) {
+if (after.version_id !== main.version_id || after.branch_id !== main.branch_id || (testerDemo && (await request('?' + new URLSearchParams({ branch_id: parent.branch_id }))).version_id !== parent.version_id)) {
   throw Error('Default ElevenLabs version changed during setup. Investigate before deployment.');
 }
-console.log(JSON.stringify({ firstHaven3Version: candidate.version_id, zeroDefaultTraffic: true, originalVersionPreserved: true }));
+console.log(JSON.stringify({ firstHaven3Version: candidate.version_id, zeroDefaultTraffic: true, originalVersionPreserved: true, testerDemo }));

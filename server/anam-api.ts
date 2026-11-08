@@ -1,7 +1,7 @@
-import {createHash,randomBytes} from 'node:crypto';
+import {createHash,randomBytes,timingSafeEqual} from 'node:crypto';
 import {createAssistantHandler} from './assistant-api.ts';
 import {createAnamQuota} from './anam-quota.ts';
-import {ANAM_DEMO_AVATAR_ID,ANAM_DEMO_MAX_SECONDS,allowsAnamTestReports,isAnamDemo} from '../shared/anam-demo.ts';
+import {ANAM_DEMO_AVATAR_ID,ANAM_DEMO_MAX_SECONDS,allowsAnamTestReports,isAnamDemo,isAnamTesterDemo} from '../shared/anam-demo.ts';
 
 type Environment=Record<string,string|undefined>;
 type Quota=ReturnType<typeof createAnamQuota>;
@@ -11,7 +11,7 @@ const hash=(value:string)=>createHash('sha256').update(value).digest('hex');
 const JESSICA_AGENT_ID='agent_0601m6pwks2ffjwtw76g0ppwk0ym';
 function containsProviderSecret(value:unknown,env:Environment):boolean{
  const text=JSON.stringify(value);
- return [env.ANAM_API_KEY,env.ELEVENLABS_API_KEY,env.ANAM_QUOTA_REDIS_REST_TOKEN].some(key=>Boolean(key&&text.includes(key)))||/wss:\/\/api\.elevenlabs\.io|conversation_signature|xi-api-key/i.test(text);
+ return [env.ANAM_API_KEY,env.ELEVENLABS_API_KEY,env.ANAM_QUOTA_REDIS_REST_TOKEN,env.ANAM_TESTER_ACCESS_CODE_SHA256].some(key=>Boolean(key&&text.includes(key)))||/wss:\/\/api\.elevenlabs\.io|conversation_signature|xi-api-key/i.test(text);
 }
 function validSessionToken(value:unknown,env:Environment):value is string{
  if(typeof value!=='string'||value.length>32768||!/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(value)||containsProviderSecret(value,env))return false;
@@ -27,6 +27,10 @@ function providers(env:Environment):boolean{
  return Boolean(env.ANAM_API_KEY&&env.ELEVENLABS_API_KEY&&env.ELEVENLABS_AGENT_ID===JESSICA_AGENT_ID&&/^agtvrsn_[a-zA-Z0-9]+$/.test(env.ELEVENLABS_AGENT_VERSION_ID||'')
   &&env.ANAM_AVATAR_ID===ANAM_DEMO_AVATAR_ID);
 }
+function testerAuthorized(code: unknown, expected: string | undefined): boolean {
+ return typeof code==='string'&&/^[A-Za-z0-9_-]{43}$/.test(code)&&typeof expected==='string'&&/^[a-f0-9]{64}$/.test(expected)
+  &&timingSafeEqual(Buffer.from(hash(code),'hex'),Buffer.from(expected,'hex'));
+}
 async function stop(id:string,env:Environment,fetcher:typeof fetch):Promise<boolean>{
  try{const response=await fetcher('https://api.anam.ai/v1/sessions/'+id+'/stop',{method:'POST',headers:{Authorization:'Bearer '+env.ANAM_API_KEY},redirect:'error',signal:AbortSignal.timeout(10000)});return response.status===200;}catch{return false;}
 }
@@ -34,12 +38,24 @@ async function stop(id:string,env:Environment,fetcher:typeof fetch):Promise<bool
 export function createAnamHandler(env:Environment,{fetcher=fetch,quota,now=Date.now,nonce=()=>randomBytes(32).toString('hex')}:Dependencies={}){
  return async(request:Request):Promise<Response>=>{
   if(!isAnamDemo(env))return json({error:'preview_only'},404);
-  if(request.method==='GET')return json({provider:'anam',configured:providers(env)&&Boolean(env.ANAM_QUOTA_REDIS_REST_URL&&env.ANAM_QUOTA_REDIS_REST_TOKEN),syntheticOnly:true,voiceName:'Jessica',model:'cara-4.1-express',dailyLimit:20,maxSeconds:ANAM_DEMO_MAX_SECONDS});
+  const testerDemo=isAnamTesterDemo(env);
+  const accessHash=env.ANAM_TESTER_ACCESS_CODE_SHA256;
+  const accessConfigured=!testerDemo||/^[a-f0-9]{64}$/.test(accessHash||'');
+  if(request.method==='GET')return json({provider:'anam',configured:accessConfigured&&providers(env)&&Boolean(env.ANAM_QUOTA_REDIS_REST_URL&&env.ANAM_QUOTA_REDIS_REST_TOKEN),syntheticOnly:true,voiceName:'Jessica',model:'cara-4.1-express',dailyLimit:20,maxSeconds:ANAM_DEMO_MAX_SECONDS});
   if(request.method!=='POST')return json({error:'method_not_allowed'},405);
   if(!sameOrigin(request))return json({error:'same_origin_required'},403);
   const body=await bodyOf(request);if(!body)return json({error:'invalid_request'},400);
+  if(testerDemo&&body.action==='verify_tester'){
+   if(!accessConfigured)return json({error:'anam_not_configured'},503);
+   if(Object.keys(body).some(key=>!['action','accessCode'].includes(key))||!testerAuthorized(body.accessCode,accessHash))return json({error:'tester_access_required'},403);
+   return json({authorized:true});
+  }
   const end=body.action==='end';
-  if(end?(typeof body.leaseToken!=='string'||!/^[a-f0-9]{64}$/.test(body.leaseToken)||Object.keys(body).some(key=>!['action','leaseToken'].includes(key))):(body.action!=='start'||body.testConsent!==true||!['voice','text'].includes(String(body.mode))||Object.keys(body).some(key=>!['action','mode','testConsent'].includes(key))))return json({error:'consent_required'},400);
+  if(end?(typeof body.leaseToken!=='string'||!/^[a-f0-9]{64}$/.test(body.leaseToken)||Object.keys(body).some(key=>!['action','leaseToken'].includes(key))):(body.action!=='start'||body.testConsent!==true||!['voice','text'].includes(String(body.mode))||Object.keys(body).some(key=>!['action','mode','testConsent',...(testerDemo?['accessCode']:[])].includes(key))))return json({error:'consent_required'},400);
+  if(testerDemo&&!end){
+   if(!accessConfigured)return json({error:'anam_not_configured'},503);
+   if(!testerAuthorized(body.accessCode,accessHash))return json({error:'tester_access_required'},403);
+  }
   let ledger:Quota;
   try{ledger=quota||createAnamQuota(env,fetcher);}catch{return json({error:'quota_store_required'},503);}
   if(end){
@@ -58,7 +74,7 @@ export function createAnamHandler(env:Environment,{fetcher=fetch,quota,now=Date.
    if(reservation!=='ok')return json({error:reservation},429);
    // The external legacy endpoint is disabled for Anam deployments. This
    // internal call still applies all of the existing Jessica policy checks.
-   const verified=await createAssistantHandler({...env,FIRST_HAVEN_ANAM_PREVIEW:'false'},fetcher)(new Request(request.url,{method:'POST',headers:{Origin:new URL(request.url).origin,'Content-Type':'application/json'},body:JSON.stringify({action:'start',mode:body.mode,testConsent:true})}));
+   const verified=await createAssistantHandler({...env,FIRST_HAVEN_ANAM_PREVIEW:'false',FIRST_HAVEN_ANAM_TESTER_DEMO:'false'},fetcher,testerDemo)(new Request(request.url,{method:'POST',headers:{Origin:new URL(request.url).origin,'Content-Type':'application/json'},body:JSON.stringify({action:'start',mode:body.mode,testConsent:true})}));
    if(!verified.ok){await ledger.release(owner,false);return json({error:'jessica_setup_required'},412);}
    const signed=await verified.json();
    const avatarResponse=await fetcher('https://api.anam.ai/v1/avatars/'+env.ANAM_AVATAR_ID,{headers:{Authorization:'Bearer '+env.ANAM_API_KEY},redirect:'error',signal:AbortSignal.timeout(10000)});
@@ -67,7 +83,7 @@ export function createAnamHandler(env:Environment,{fetcher=fetch,quota,now=Date.
    if(!Array.isArray(avatar.availableVersions)||!avatar.availableVersions.includes('cara-4.1-express')){await ledger.release(owner,false);return json({error:'avatar_model_required'},412);}
    const response=await fetcher('https://api.anam.ai/v1/auth/session-token',{
     method:'POST',headers:{Authorization:'Bearer '+env.ANAM_API_KEY,'Content-Type':'application/json'},redirect:'error',signal:AbortSignal.timeout(15000),
-    body:JSON.stringify({maxSessions:1,expiresInSeconds:120,clientLabel:'first-haven3-fictional-preview',
+    body:JSON.stringify({maxSessions:1,expiresInSeconds:120,clientLabel:testerDemo?'first-haven3-fictional-tester':'first-haven3-fictional-preview',
      personaConfig:{name:'Jessica — TEST',avatarId:env.ANAM_AVATAR_ID,avatarModel:'cara-4.1-express',maxSessionLengthSeconds:ANAM_DEMO_MAX_SECONDS,zeroDataRetention:!allowsAnamTestReports(env),directorNotes:{presetStyle:'warm',expressivity:0.5}},
      environment:{elevenLabsAgentSettings:{agentId:env.ELEVENLABS_AGENT_ID,signedUrl:signed.signedUrl}},
      sessionOptions:{dataRetention:{recording:false,transcripts:false},videoWidth:768,videoHeight:1152,videoQuality:'auto'},

@@ -1,4 +1,5 @@
 export const INTRODUCTION = "Welcome to First Haven Escrow! I'm your virtual escrow assistant. I can help you get started with opening escrow. Would you like to begin?";
+export const TESTER_INTRODUCTION = 'Hi there, welcome to First Haven Escrow. With just five pieces of information, we can open your escrow file. Are you the agent and what is your full name?';
 export const REVIEW_NOTICE = 'This is a test request. An escrow employee must review a real request before an escrow order is officially opened. No escrow number has been assigned.';
 export const POLICY_VERSION = 'FIRST_HAVEN3_TEST_INTAKE_V1';
 export const JESSICA_VOICE_ID = 'cgSgspJ2msm6clMCkdW9';

@@ -10,6 +10,8 @@ from playwright.sync_api import sync_playwright, expect
 ROOT=Path(__file__).resolve().parents[1]
 BASE='http://127.0.0.1:4185'
 ENV={**os.environ,'VERCEL_ENV':'preview','FIRST_HAVEN_ANAM_PREVIEW':'true'}
+TESTER=ENV.get('FIRST_HAVEN_ANAM_TESTER_DEMO')=='true'
+TESTER_CODE='Z'*43
 SDK='''
 const names=['CONNECTION_ESTABLISHED','SESSION_READY','DATA_CHANNEL_OPEN','VIDEO_PLAY_STARTED','MESSAGE_STREAM_EVENT_RECEIVED','USER_SPEECH_STARTED','USER_SPEECH_ENDED','TALK_STREAM_INTERRUPTED','MIC_PERMISSION_DENIED','MESSAGE_DELIVERY_FAILED','CONNECTION_CLOSED','INPUT_AUDIO_STREAM_STARTED','AUDIO_STREAM_STARTED','VIDEO_STREAM_STARTED'];
 export const AnamEvent=Object.fromEntries(names.map(n=>[n,n]));
@@ -43,6 +45,21 @@ chunks=[p.name for p in (ROOT/'dist/assistant').glob('chunk-*.js') if 'VIDEO_PLA
 assert len(chunks)==1, chunks
 server=subprocess.Popen(['node','scripts/serve.mjs'],cwd=ROOT,env={**ENV,'PORT':'4185'},stdout=subprocess.DEVNULL,creationflags=subprocess.CREATE_NO_WINDOW if os.name=='nt' else 0)
 report=[]
+def unlock(page, check_wrong=False):
+ if not TESTER:return
+ gate=page.locator('.fh-demo-consent')
+ expect(gate).to_be_visible()
+ before=page.evaluate('({mic:qaMicCalls,starts:window.qaStarts||0})')
+ assert 'fictional details' in gate.inner_text()
+ if check_wrong:
+  page.get_by_label('Tester access code').fill('wrong')
+  page.get_by_role('button',name='Start test call').click()
+  expect(gate.get_by_role('alert')).to_contain_text('code did not match')
+  assert page.evaluate('({mic:qaMicCalls,starts:window.qaStarts||0})')==before
+ page.get_by_label('Tester access code').fill(TESTER_CODE)
+ page.get_by_role('button',name='Start test call').click()
+ expect(gate).not_to_be_visible()
+
 def circular_avatar(page):
  panel=page.locator('#fh-panel');stage=page.locator('.fh-anam-stage')
  bounds=stage.bounding_box();assert bounds
@@ -85,6 +102,10 @@ try:
    page.route('**/assistant/'+chunks[0],lambda route:route.fulfill(content_type='text/javascript',body=SDK))
    def api(route):
     body=route.request.post_data_json;calls.append(body)
+    if TESTER and body['action']=='verify_tester':
+     approved=body['accessCode']==TESTER_CODE
+     route.fulfill(status=200 if approved else 403,content_type='application/json',body=json.dumps({'authorized':True} if approved else {'error':'tester_access_required'}));return
+    if TESTER and body['action']=='start':assert body['accessCode']==TESTER_CODE
     if body['action']=='start' and fail[0]:
      failed_starts.append(body);route.fulfill(status=503,content_type='application/json',body='{"error":"session_not_available"}');return
     route.fulfill(content_type='application/json',body=json.dumps({'sessionToken':'fixture-token','leaseToken':'a'*64} if body['action']=='start' else {'ended':True}))
@@ -112,6 +133,7 @@ try:
     else:
      cta.dblclick()
     expect(panel).to_be_visible()
+    unlock(page,index==0)
     assert panel.evaluate('(dialog) => dialog === window.qaEscrowDialog')
     expect(page.locator('.fh-connection')).to_contain_text('Connected to Jessica')
     expect(page.locator('#fh-anam-video')).to_be_visible()
@@ -132,7 +154,7 @@ try:
     assert page.evaluate('qaTools.size')==0
     assert sum(call['action']=='start' for call in calls)==starts_before+1
     assert page.evaluate('qaStarts')==sdk_starts_before+1
-   page.locator('.hero [data-open-escrow]').click();expect(page.locator('.fh-connection')).to_contain_text('Connected')
+   page.locator('.hero [data-open-escrow]').click();unlock(page);expect(page.locator('.fh-connection')).to_contain_text('Connected')
    # Exercise the same confirmation and client tool path as a spoken intake.
    page.evaluate("""async () => {
     const update = qaTools.get('update_test_intake');
@@ -161,10 +183,10 @@ try:
    assert page.evaluate('qaSent')=='Hello' and page.evaluate('qaInterrupts')>=1
    page.get_by_role('button',name='Close assistant and clear test data').click();expect(page.locator('#fh-panel')).not_to_be_visible()
    page.wait_for_function('qaAudioContexts.every(ac=>ac.state==="closed") && qaInput.getTracks().every(t=>t.readyState==="ended")')
-   fail[0]=True;page.locator('.hero [data-open-escrow]').click()
-   expect(page.locator('.fh-notice')).to_contain_text('could not connect')
+   fail[0]=True;page.locator('.hero [data-open-escrow]').click();unlock(page)
+   expect(page.locator('.fh-feedback:not(.fh-demo-consent) .fh-notice')).to_contain_text('could not connect')
    expect(page.get_by_role('button',name='Try again',exact=True)).to_be_visible()
-   error_bounds=circular_avatar(page);inside_portrait(page,'.fh-feedback')
+   error_bounds=circular_avatar(page);inside_portrait(page,'.fh-feedback:not(.fh-demo-consent)')
    assert abs(error_bounds['width']-bounds['width'])<.8 and abs(error_bounds['height']-bounds['height'])<.8
    page.screenshot(path=str(ROOT/f'qa/anam-circular-error-{width}x{height}.png'))
    page.get_by_role('button',name='Close assistant and clear test data').click();expect(page.locator('#fh-panel')).not_to_be_visible()
@@ -178,4 +200,4 @@ try:
  print(json.dumps({'anamUIFixtureTests':'PASS','liveAnamSessions':0,'cases':report}),flush=True)
 finally:
  server.terminate();server.wait(timeout=5)
- subprocess.run(['node','scripts/build.mjs'],cwd=ROOT,env={**os.environ,'VERCEL_ENV':'preview','FIRST_HAVEN_ANAM_PREVIEW':''},check=True,stdout=subprocess.DEVNULL)
+ subprocess.run(['node','scripts/build.mjs'],cwd=ROOT,env={**os.environ,'VERCEL_ENV':'preview','FIRST_HAVEN_ANAM_PREVIEW':'','FIRST_HAVEN_ANAM_TESTER_DEMO':''},check=True,stdout=subprocess.DEVNULL)

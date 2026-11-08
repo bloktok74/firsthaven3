@@ -1,4 +1,4 @@
-import { fields, labels, questions, sampleValues, emptyValues, validateAnswer, makeDraft, simulateSubmission, isField, containsSensitiveData, confirmationReply, INTRODUCTION, REVIEW_NOTICE, JESSICA_DAILY_SESSION_LIMIT, type IntakeField } from '../../shared/intake-model.ts';
+import { fields, labels, questions, sampleValues, emptyValues, validateAnswer, makeDraft, simulateSubmission, isField, containsSensitiveData, confirmationReply, INTRODUCTION as PREVIEW_INTRODUCTION, TESTER_INTRODUCTION, REVIEW_NOTICE, JESSICA_DAILY_SESSION_LIMIT, type IntakeField } from '../../shared/intake-model.ts';
 import { CharacterAnimator, characterMarkup } from './character.ts';
 import { VoiceController, prepareVoiceSDK, type VoiceEvents } from './voice.ts';
 import { AnamController } from './anam.ts';
@@ -7,6 +7,7 @@ declare const __ANAM_PREVIEW__: boolean;
 declare const __ANAM_PUBLIC_TEST__: boolean;
 declare const __ANAM_TEST_REPORTS__: boolean;
 if (!__ANAM_PREVIEW__) prepareVoiceSDK();
+const INTRODUCTION = __ANAM_PUBLIC_TEST__ ? TESTER_INTRODUCTION : PREVIEW_INTRODUCTION;
 const microphoneIcon = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 10v2a7 7 0 0 0 14 0v-2M12 19v3M8 22h8"/><path class="fh-mic-slash" d="M3 3l18 18"/></svg>';
 
 const root = document.createElement('aside');
@@ -18,9 +19,12 @@ root.innerHTML = `<dialog class="fh-panel" id="fh-panel" aria-modal="true" aria-
 <button class="fh-close" aria-label="Close assistant and clear test data" type="button">×</button>
 <section class="fh-presence" aria-label="Jessica"><div class="fh-portrait-stage">${__ANAM_PREVIEW__ ? '<div class="fh-anam-stage"><video id="fh-anam-video" poster="images/anam-demo-portrait.webp" autoplay playsinline aria-label="Jessica AI assistant avatar"></video></div>' : characterMarkup('portrait')}</div><span class="fh-presence-status fh-sr-only" aria-hidden="true">Here when you’re ready</span></section>
 <div class="fh-feedback" hidden><p class="fh-notice" role="alert" hidden></p><button class="fh-recovery" type="button" data-action="voice" hidden>Try again</button></div><p class="fh-connection fh-sr-only" role="status" aria-live="polite">Connecting to Jessica.</p>
-${__ANAM_PUBLIC_TEST__ ? '<div class="fh-feedback fh-demo-consent" hidden><p class="fh-notice">This 30-second AI demo is for fictional details only. Anam and ElevenLabs process your conversation. Choose Start test call to continue.</p><button class="fh-recovery" type="button" data-action="accept-demo">Start test call</button></div>' : ''}
+${__ANAM_PUBLIC_TEST__ ? `<form class="fh-feedback fh-demo-consent" method="post" hidden>
+<p class="fh-notice" id="fh-test-rules">Invited testers only. Use fictional details. This call cannot open an escrow or send an email. ${__ANAM_TEST_REPORTS__ ? 'Anam may retain session reports. Recordings and stored transcripts are off.' : 'Anam uses zero session data retention.'}</p>
+<label for="fh-tester-code">Tester access code</label><input id="fh-tester-code" type="password" required maxlength="64" autocomplete="off" spellcheck="false" aria-describedby="fh-test-rules">
+<p class="fh-tester-error" role="alert" hidden></p><button class="fh-recovery" type="submit">Start test call</button></form>` : ''}
 <p class="fh-captions" role="log" aria-live="polite" hidden></p>
-<section class="fh-access-panel" id="fh-access-panel" aria-labelledby="fh-access-title" hidden><h3 id="fh-access-title" tabindex="-1">Privacy & accessibility</h3><p id="fh-voice-disclosure">This is a fictional test conversation with an AI avatar. ${__ANAM_PUBLIC_TEST__ ? 'Starting the test call requests microphone access. Anam renders the avatar with zero session data retention and ElevenLabs processes the conversation. Audio/video recording and stored transcripts are disabled.' : __ANAM_PREVIEW__ ? `Opening Jessica requests microphone access. Anam renders the avatar and ElevenLabs processes the conversation. Audio/video recording and stored transcripts are disabled. ${__ANAM_TEST_REPORTS__ ? 'Anam may retain other session report data. Use fictional details only.' : 'Anam uses zero session data retention.'}` : 'Opening Jessica requests microphone access. ElevenLabs processes the audio; recording is disabled.'} Closing ends the call and clears the local draft.</p><label><input type="checkbox" name="captions"> Show live captions</label><button type="button" data-action="keyboard">Keyboard conversation</button><button type="button" data-action="reset">Clear conversation</button><button type="button" data-action="options-close">Done</button></section>
+<section class="fh-access-panel" id="fh-access-panel" aria-labelledby="fh-access-title" hidden><h3 id="fh-access-title" tabindex="-1">Privacy & accessibility</h3><p id="fh-voice-disclosure">This is a fictional test conversation with an AI avatar. ${__ANAM_PUBLIC_TEST__ ? `Starting the test call requests microphone access. Anam renders the avatar and ElevenLabs processes the conversation. Audio/video recording and stored transcripts are disabled. ${__ANAM_TEST_REPORTS__ ? 'Anam may retain other session report data.' : 'Anam uses zero session data retention.'}` : __ANAM_PREVIEW__ ? `Opening Jessica requests microphone access. Anam renders the avatar and ElevenLabs processes the conversation. Audio/video recording and stored transcripts are disabled. ${__ANAM_TEST_REPORTS__ ? 'Anam may retain other session report data. Use fictional details only.' : 'Anam uses zero session data retention.'}` : 'Opening Jessica requests microphone access. ElevenLabs processes the audio; recording is disabled.'} Closing ends the call and clears the local draft.</p><label><input type="checkbox" name="captions"> Show live captions</label><button type="button" data-action="keyboard">Keyboard conversation</button><button type="button" data-action="reset">Clear conversation</button><button type="button" data-action="options-close">Done</button></section>
 <form class="fh-input-form" hidden><label class="fh-sr-only" for="fh-answer">Your message</label><div class="fh-input-row"><input id="fh-answer" name="answer" autocomplete="off" maxlength="240" placeholder="Your message…"><button type="submit" aria-label="Send message">↑</button></div><p class="fh-field-error" role="alert"></p></form>
 <footer class="fh-call-controls"><button class="fh-call-button" type="button" data-action="mute" aria-label="Mute microphone" aria-pressed="false" disabled>${microphoneIcon}</button><button class="fh-end-call" type="button" data-action="end" aria-label="End conversation">End call</button></footer>
 <div class="fh-internal" hidden inert aria-hidden="true"><div class="fh-tabs"><button type="button" data-view="chat" aria-pressed="true">Conversation</button><button type="button" data-view="review" aria-pressed="false">Review request <span class="fh-count">0/6</span></button></div>
@@ -54,7 +58,8 @@ let humanConfirmed: { field: IntakeField; value: string } | null = null;
 let editing = false;
 let simulated = false;
 let voiceStarting = false;
-let publicDemoConsent = false;
+let testerAccessCode = '';
+let testerCheck: AbortController | null = null;
 let sessionMode: 'voice' | 'text' = 'voice';
 let closeAnimation: ReturnType<typeof setTimeout> | undefined;
 let returnFocus: HTMLElement | undefined;
@@ -270,8 +275,11 @@ if (__ANAM_PREVIEW__) {
 }
 function reset(): void {
   if (__ANAM_PUBLIC_TEST__) {
-    publicDemoConsent = false;
-    element<HTMLElement>('.fh-demo-consent').hidden = true;
+    testerAccessCode = ''; testerCheck?.abort(); testerCheck = null;
+    const gate = element<HTMLFormElement>('.fh-demo-consent');
+    gate.reset(); gate.hidden = true;
+    element<HTMLButtonElement>('.fh-demo-consent button').disabled = false;
+    element<HTMLElement>('.fh-tester-error').hidden = true;
   }
   startGeneration++;
   void voice.end(); values = emptyValues(); skipped = []; current = null; pending = null; voiceCandidate = null; humanConfirmed = null; editing = false; simulated = false;
@@ -287,11 +295,11 @@ function reset(): void {
   element<HTMLButtonElement>('[data-action="privacy"]').setAttribute('aria-expanded', 'false');
   voiceButtons(false);
   status.textContent = __ANAM_PUBLIC_TEST__
-    ? 'Choose Start test call to speak with Jessica.'
+    ? 'Enter your private tester access code to speak with Jessica.'
     : 'Jessica starts when you open this window. Text is available without a microphone.';
 }
 async function startConversation(mode: 'voice' | 'text'): Promise<void> {
-  if (__ANAM_PUBLIC_TEST__ && !publicDemoConsent) return;
+  if (__ANAM_PUBLIC_TEST__ && !testerAccessCode) return;
   if (voiceStarting || voice.active) return;
   const generation = ++startGeneration;
   sessionMode = mode; voiceStarting = true; voiceButtons(false);
@@ -301,7 +309,10 @@ async function startConversation(mode: 'voice' | 'text'): Promise<void> {
   if (current) showQuestionActions();
   // The visitor's entry/retry click explicitly requests this test conversation.
   // Native microphone permission and all server-side test gates still apply.
-  try { await voice.start(mode, true); }
+  try {
+    if (voice instanceof AnamController) await voice.start(mode, true, testerAccessCode);
+    else await voice.start(mode, true);
+  }
   finally {
     if (generation !== startGeneration) return;
     voiceStarting = false; voiceButtons(voice.active);
@@ -338,7 +349,7 @@ function open(trigger: HTMLElement): void {
   element<HTMLButtonElement>('.fh-close').focus();
   if (opening && __ANAM_PUBLIC_TEST__) {
     element<HTMLElement>('.fh-demo-consent').hidden = false;
-    element<HTMLButtonElement>('[data-action="accept-demo"]').focus();
+    element<HTMLInputElement>('#fh-tester-code').focus();
   } else if (opening) {
     void startConversation('voice');
   }
@@ -353,6 +364,40 @@ for (const link of document.querySelectorAll<HTMLAnchorElement>('a[data-open-esc
     if (!event.isTrusted || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
     event.preventDefault();
     open(link);
+  });
+}
+if (__ANAM_PUBLIC_TEST__) {
+  const gate = element<HTMLFormElement>('.fh-demo-consent');
+  const code = element<HTMLInputElement>('#fh-tester-code');
+  const submit = element<HTMLButtonElement>('.fh-demo-consent button');
+  const error = element<HTMLElement>('.fh-tester-error');
+  gate.addEventListener('submit', async event => {
+    event.preventDefault();
+    if (!event.isTrusted || testerCheck || testerAccessCode || gate.hidden || panel.inert) return;
+    const accessCode = code.value.trim();
+    const check = new AbortController();
+    testerCheck = check; submit.disabled = true; error.hidden = true;
+    try {
+      const response = await fetch('/api/anam-session', {
+        method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'verify_tester', accessCode }), signal: check.signal,
+      });
+      if (check.signal.aborted) return;
+      if (!response.ok) {
+        error.textContent = response.status === 403 ? 'That code did not match. Check it and try again.' : 'Tester access is temporarily unavailable.';
+        error.hidden = false; code.focus(); return;
+      }
+      const result = await response.json();
+      if (check.signal.aborted) return;
+      if (result.authorized !== true) throw new Error('Tester authorization was unavailable');
+      testerAccessCode = accessCode; code.value = ''; gate.hidden = true;
+      element<HTMLButtonElement>('.fh-close').focus();
+      void startConversation('voice');
+    } catch {
+      if (!check.signal.aborted) { error.textContent = 'Tester access is temporarily unavailable.'; error.hidden = false; }
+    } finally {
+      if (testerCheck === check) { testerCheck = null; submit.disabled = false; }
+    }
   });
 }
 element<HTMLButtonElement>('.fh-close').addEventListener('click', close);
@@ -388,12 +433,7 @@ root.addEventListener('click', event => {
   if (!target) return;
   if (target.dataset.view) { setView(target.dataset.view === 'review' ? 'review' : 'chat'); return; }
   const action = target.dataset.action;
-  if (__ANAM_PUBLIC_TEST__ && action === 'accept-demo') {
-    publicDemoConsent = true;
-    element<HTMLElement>('.fh-demo-consent').hidden = true;
-    element<HTMLButtonElement>('[data-action="end"]').focus();
-    void startConversation('voice');
-  } else if (action === 'privacy') setOptions(element<HTMLElement>('.fh-access-panel').hidden === true);
+  if (action === 'privacy') setOptions(element<HTMLElement>('.fh-access-panel').hidden === true);
   else if (action === 'options-close') setOptions(false);
   else if (action === 'keyboard') {
     captionsEnabled = true; element<HTMLInputElement>('[name="captions"]').checked = true;

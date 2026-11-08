@@ -1,7 +1,7 @@
 import { cp, mkdir, readFile, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { build } from 'esbuild';
-import { allowsAnamTestReports, isAnamDemo } from '../shared/anam-demo.ts';
+import { allowsAnamTestReports, isAnamDemo, isAnamTesterDemo } from '../shared/anam-demo.ts';
 
 const root = new URL('../', import.meta.url);
 const file = path => new URL(path, root);
@@ -20,7 +20,7 @@ if (enabled) {
     bundle: true, format: 'esm', splitting: true, minify: true, target: 'es2022',
     define: {
       __ANAM_PREVIEW__: 'true',
-      __ANAM_PUBLIC_TEST__: 'false',
+      __ANAM_PUBLIC_TEST__: JSON.stringify(isAnamTesterDemo(process.env)),
       __ANAM_TEST_REPORTS__: JSON.stringify(allowsAnamTestReports(process.env)),
     },
   });

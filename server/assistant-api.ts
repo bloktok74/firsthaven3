@@ -1,5 +1,5 @@
-import { AGENT_PROMPT, TEST_WEBHOOK_NAME, TEST_WEBHOOK_URL } from '../shared/agent-policy.ts';
-import { INTRODUCTION, JESSICA_VOICE_ID, JESSICA_DAILY_SESSION_LIMIT } from '../shared/intake-model.ts';
+import { AGENT_PROMPT, TESTER_AGENT_PROMPT, TEST_WEBHOOK_NAME, TEST_WEBHOOK_URL } from '../shared/agent-policy.ts';
+import { INTRODUCTION, TESTER_INTRODUCTION, JESSICA_VOICE_ID, JESSICA_DAILY_SESSION_LIMIT } from '../shared/intake-model.ts';
 import { isAnamDemo } from '../shared/anam-demo.ts';
 
 type Json = Record<string, unknown>;
@@ -59,7 +59,7 @@ function hasExecutableWorkflow(value: unknown): boolean {
   return nodes.some(node => node.type !== 'start' || active(node.edge_order) || node.parent_subgraph_id != null || Object.keys(node).some(key => !['type', 'position', 'edge_order', 'label', 'parent_subgraph_id'].includes(key)));
 }
 
-export function checkAgentPolicy(agent: unknown, tools: unknown[], allowPriorTextPool = false): string[] {
+export function checkAgentPolicy(agent: unknown, tools: unknown[], allowPriorTextPool = false, testerDemo = false): string[] {
   const data = object(agent);
   const config = object(data.conversation_config);
   const persona = object(config.agent);
@@ -68,8 +68,8 @@ export function checkAgentPolicy(agent: unknown, tools: unknown[], allowPriorTex
   const privacy = object(platform.privacy);
   const problems: string[] = [];
   const normalized = (value: unknown) => typeof value === 'string' ? value.replace(/\r\n/g, '\n').trim() : '';
-  if (normalized(prompt.prompt) !== normalized(AGENT_PROMPT)) problems.push('test_prompt');
-  if (persona.first_message !== INTRODUCTION) problems.push('first_message');
+  if (normalized(prompt.prompt) !== normalized(testerDemo ? TESTER_AGENT_PROMPT : AGENT_PROMPT)) problems.push('test_prompt');
+  if (persona.first_message !== (testerDemo ? TESTER_INTRODUCTION : INTRODUCTION)) problems.push('first_message');
   if (object(config.tts).voice_id !== JESSICA_VOICE_ID) problems.push('jessica_voice');
   const duration = object(config.conversation).max_duration_seconds;
   if (typeof duration !== 'number' || duration <= 0 || duration > 600) problems.push('duration_limit');
@@ -79,8 +79,6 @@ export function checkAgentPolicy(agent: unknown, tools: unknown[], allowPriorTex
   if (hasExternalWebhook(outsideSink)) problems.push('webhooks');
   if (!testWebhookConfigured(data)) problems.push('webhook_isolation');
   if (unsafeOverride(platform.overrides, '', allowPriorTextPool)) problems.push('unsafe_overrides');
-  // Setup migration alone may inspect the prior chat-pool configuration. All
-  // request handlers use the strict default; clients cannot select that pool.
   if (!allowPriorTextPool && object(config.conversation).text_only !== false) problems.push('shared_session_pool');
   if (!allowPriorTextPool && object(platform.queueing_config).enabled !== false) problems.push('session_queue');
   if (hasExecutableWorkflow(data.workflow) || active(data.procedures) || active(data.phone_numbers) || active(data.whatsapp_accounts) || active(config.language_presets) || active(prompt.knowledge_base) || active(prompt.custom_llm) || active(prompt.native_mcp_server_ids)) problems.push('extra_integrations');
@@ -104,12 +102,12 @@ function json(body: unknown, status = 200): Response {
   } });
 }
 
-export function createAssistantHandler(env: Environment, fetcher: typeof fetch = fetch) {
+export function createAssistantHandler(env: Environment, fetcher: typeof fetch = fetch, testerDemo = false) {
   return async (request: Request): Promise<Response> => {
     // Production requires a separately approved explicit opt-in and verified
     // provider limits. A key or a local-test flag alone never enables it.
-    if (isAnamDemo(env) && request.method !== 'GET') return json({ error: 'anam_preview_only' }, 403);
-    if (env.VERCEL_ENV !== 'preview') return json({ error: 'preview_only' }, 404);
+    if (!testerDemo && isAnamDemo(env) && request.method !== 'GET') return json({ error: 'anam_preview_only' }, 403);
+    if (!testerDemo && env.VERCEL_ENV !== 'preview') return json({ error: 'preview_only' }, 404);
     const versionId = env.ELEVENLABS_AGENT_VERSION_ID || '';
     const configured = Boolean(env.ELEVENLABS_API_KEY && env.ELEVENLABS_AGENT_ID && /^agtvrsn_[a-zA-Z0-9]+$/.test(versionId));
     if (request.method === 'GET') return json({ configured, syntheticOnly: true, voiceName: 'Jessica' });
@@ -141,7 +139,7 @@ export function createAssistantHandler(env: Environment, fetcher: typeof fetch =
       const ids = object(object(object(agent.conversation_config).agent).prompt).tool_ids;
       if (!Array.isArray(ids) || ids.length !== 2 || ids.some(id => typeof id !== 'string' || !/^tool_[a-zA-Z0-9]+$/.test(id))) return json({ error: 'test_agent_setup_required', checks: ['client_tools'] }, 412);
       const tools = await Promise.all(ids.map(id => upstream('tools/' + encodeURIComponent(String(id)))));
-      const problems = checkAgentPolicy(agent, tools);
+      const problems = checkAgentPolicy(agent, tools, false, testerDemo);
       problems.push(...checkPublicTestLimits(agent));
       if (problems.length) return json({ error: 'test_agent_setup_required', checks: problems }, 412);
       // Workspace webhooks are inherited even when the agent has no endpoint.

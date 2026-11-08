@@ -61,7 +61,7 @@ export class AnamController {
 
   private current(attempt: Attempt): boolean { return this.attempt === attempt && !attempt.cancelled; }
 
-  async start(mode: 'voice' | 'text', consent: boolean): Promise<void> {
+  async start(mode: 'voice' | 'text', consent: boolean, accessCode = ''): Promise<void> {
     if (!consent) { this.events.status('Please use made-up test details before starting.', 'error'); return; }
     if (this.attempt || this.active) return;
     const attempt: Attempt = {
@@ -88,7 +88,7 @@ export class AnamController {
       }
       const response = await this.fetcher('/api/anam-session', {
         method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'start', mode, testConsent: true }), signal: attempt.request.signal,
+        body: JSON.stringify({ action: 'start', mode, testConsent: true, ...(accessCode ? { accessCode } : {}) }), signal: attempt.request.signal,
       });
       const data = await response.json();
       if (typeof data.leaseToken === 'string' && data.leaseToken.length > 0 && data.leaseToken.length <= 4096) attempt.lease = data.leaseToken;

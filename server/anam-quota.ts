@@ -73,12 +73,12 @@ export function createAnamQuota(env: Environment, fetcher: typeof fetch = fetch)
   // The endpoint is trusted server configuration, never a request parameter.
   // Upstash REST and explicitly configured HTTPS-compatible REST endpoints work.
   let endpoint: string;
-  const prefix = '{firsthaven3:anam:preview:v1}:';
+  const prefix = env.VERCEL_ENV === 'production' ? '{firsthaven3:anam:tester:v1}:' : '{firsthaven3:anam:preview:v1}:';
   const lease = prefix + 'lease';
   const token = env.ANAM_QUOTA_REDIS_REST_TOKEN;
   try {
     const configured = env.ANAM_QUOTA_REDIS_REST_URL;
-    if (env.VERCEL_ENV !== 'preview' || typeof configured !== 'string' || !configured.trim() || typeof token !== 'string' || !token.trim() || /[\x00-\x20\x7f]/.test(token)) throw Error();
+    if ((env.VERCEL_ENV !== 'preview' && !(env.VERCEL_ENV === 'production' && env.FIRST_HAVEN_ANAM_TESTER_DEMO === 'true')) || typeof configured !== 'string' || !configured.trim() || typeof token !== 'string' || !token.trim() || /[\x00-\x20\x7f]/.test(token)) throw Error();
     const url = new URL(configured);
     if (url.protocol !== 'https:' || !url.hostname || url.username || url.password || url.search || url.hash || /[\x00-\x20\x7f]/.test(configured)) throw Error();
     endpoint = url.href;
