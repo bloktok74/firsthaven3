@@ -34,6 +34,7 @@
   header{border-bottom:1px solid var(--rule)}
   .bar{display:flex;align-items:center;justify-content:space-between;gap:1.5rem;padding-block:1.1rem}
   .logo{display:flex;align-items:center;gap:.8rem;text-decoration:none}
+  .logo img{height:3.1rem;width:auto;display:block}
   .logo .fh{width:2.6rem;height:2.6rem;background:var(--ink);color:var(--paper);display:grid;place-items:center;font:600 1.05rem/1 var(--display);letter-spacing:.02em}
   .logo .word{display:grid;line-height:1}
   .logo .first{font:600 .78rem/1 var(--body);letter-spacing:.14em}
@@ -152,10 +153,7 @@
 <body>
 <header>
   <div class="wrap bar">
-    <a class="logo" href="#top" aria-label="First Haven Escrow, home">
-      <span class="fh" aria-hidden="true">FH</span>
-      <span class="word"><span class="first">FIRST</span><span class="haven">HAVEN</span><span class="escrow">ESCROW</span></span>
-    </a>
+    <a class="logo" href="#top" aria-label="First Haven Escrow, home"><img src="logo.png" alt="First Haven Escrow" width="335" height="71"></a>
     <nav aria-label="Main"><ul>
       <li><a href="#services">Services</a></li>
       <li><a href="#process">How it works</a></li>
