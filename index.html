@@ -59,7 +59,7 @@
   .hours{margin-top:2rem;font-size:.95rem;color:var(--ink-soft)}
 
   /* the escrow file */
-  .file{background:#F8F7F4;border:1px solid var(--rule);box-shadow:0 1px 0 #fff inset,0 18px 40px -22px rgba(40,30,10,.35);padding:1.6rem 1.7rem 1.3rem;position:relative;transform:rotate(.6deg)}
+  .file{background:#F8F7F4;border:1px solid var(--rule);box-shadow:0 1px 0 #fff inset,0 18px 40px -22px rgba(40,30,10,.35);padding:1.6rem 1.7rem 1.3rem;position:relative;}
   .file-head{display:flex;justify-content:space-between;align-items:baseline;border-bottom:2px solid var(--ink);padding-bottom:.7rem;margin-bottom:.4rem}
   .file-head strong{font:600 1.25rem/1 var(--display)}
   .file-head span{font-size:.8rem;color:var(--ink-soft)}
@@ -72,7 +72,7 @@
   .ledger li.now .st{color:var(--red-ink)}
   .ledger li.now .st::before{content:"";display:inline-block;width:.55rem;height:.55rem;border:2px solid var(--red-ink);margin-right:.5rem;border-radius:50%}
   .file-foot{display:flex;justify-content:space-between;align-items:center;margin-top:.6rem;padding-top:.9rem;border-top:2px solid var(--ink);font-size:.82rem;color:var(--ink-soft)}
-  .stamp{position:absolute;right:1.4rem;top:-2.5rem;transform:rotate(-8deg);border:3px solid var(--red);color:var(--red-ink);font:600 .8rem/1.15 var(--body);letter-spacing:.14em;text-transform:uppercase;padding:.45rem .7rem;text-align:center;background:var(--paper);opacity:.95}
+  .stamp{position:absolute;right:1.4rem;top:-2.5rem;border:3px solid var(--red);color:var(--red-ink);font:600 .8rem/1.15 var(--body);letter-spacing:.14em;text-transform:uppercase;padding:.45rem .7rem;text-align:center;background:var(--paper);opacity:.95}
 
   /* single authored moment: the ledger entries are recorded one by one */
   @media (prefers-reduced-motion:no-preference){
@@ -84,7 +84,7 @@
     .ledger li:nth-child(5){animation-delay:1.65s}
     .stamp{animation:thud .6s var(--ease) 2.1s backwards}
     @keyframes record{to{opacity:1;transform:none}}
-    @keyframes thud{from{opacity:0;transform:rotate(-8deg) scale(1.5)}}
+    @keyframes thud{from{opacity:0;transform:scale(1.4)}}
   }
 
   /* assurance strip */
