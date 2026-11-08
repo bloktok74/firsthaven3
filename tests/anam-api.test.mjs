@@ -117,10 +117,11 @@ test('Anam accepts only the existing Jessica agent identity',async()=>{
   const f=fixture({ELEVENLABS_AGENT_ID:'agent_unapproved'});assert.equal((await f.start(request())).status,503);assert.equal(f.state.calls.length,0);assert.equal(f.state.issuances,0);
 });
 
-test('FirstHaven3 requires zero data retention even if a legacy Preview exception is configured',async()=>{
+test('FirstHaven3 permits other Anam session reports only with explicit Preview approval',async()=>{
  const f=fixture({ANAM_TEST_REPORT_RETENTION:'approved'});assert.equal((await f.start(request())).status,200);
- const body=JSON.parse(minted(f.state)[0].options.body);assert.equal(body.personaConfig.zeroDataRetention,true);
+ const body=JSON.parse(minted(f.state)[0].options.body);assert.equal(body.personaConfig.zeroDataRetention,false);
  assert.deepEqual(body.sessionOptions.dataRetention,{recording:false,transcripts:false});
+ const unapproved=fixture({ANAM_TEST_REPORT_RETENTION:'true'});await unapproved.start(request());assert.equal(JSON.parse(minted(unapproved.state)[0].options.body).personaConfig.zeroDataRetention,true);
  const production=fixture({VERCEL_ENV:'production',ANAM_TEST_REPORT_RETENTION:'approved'});assert.equal((await production.start(request())).status,404);assert.equal(minted(production.state).length,0);
 });
 

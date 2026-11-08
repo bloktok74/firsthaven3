@@ -14,8 +14,11 @@ Set `ANAM_API_KEY`, `ELEVENLABS_API_KEY`, `ANAM_QUOTA_REDIS_REST_URL`, and
 `ELEVENLABS_AGENT_ID`, and `ELEVENLABS_AGENT_VERSION_ID` server-side. Use a
 FirstHaven3-only version of the existing ElevenLabs agent with zero default
 traffic. `scripts/prepare-intake-version.mjs` creates and verifies that version
-only in an explicit FirstHaven3 Preview setup build. Anam zero data retention
-is required. Session recordings and stored transcripts are disabled.
+only in an explicit FirstHaven3 Preview setup build. Set
+`ANAM_TEST_REPORT_RETENTION=approved` at build and runtime only for the approved
+protected fictional-data demo. This disables Anam zero data retention for the
+demo. Audio/video recordings and stored transcripts stay off, but Anam may
+retain other session reports. The default requires zero data retention.
 
 The quota ledger reserves up to 20 starts per UTC day, permits one concurrent
 session, and stores no intake fields. The avatar and provider each enforce the

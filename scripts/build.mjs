@@ -1,7 +1,7 @@
 import { cp, mkdir, readFile, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { build } from 'esbuild';
-import { isAnamDemo } from '../shared/anam-demo.ts';
+import { allowsAnamTestReports, isAnamDemo } from '../shared/anam-demo.ts';
 
 const root = new URL('../', import.meta.url);
 const file = path => new URL(path, root);
@@ -18,7 +18,11 @@ if (enabled) {
     entryNames: 'assistant',
     chunkNames: 'chunk-[hash]',
     bundle: true, format: 'esm', splitting: true, minify: true, target: 'es2022',
-    define: { __ANAM_PREVIEW__: 'true', __ANAM_PUBLIC_TEST__: 'false' },
+    define: {
+      __ANAM_PREVIEW__: 'true',
+      __ANAM_PUBLIC_TEST__: 'false',
+      __ANAM_TEST_REPORTS__: JSON.stringify(allowsAnamTestReports(process.env)),
+    },
   });
   html = html.replace('</head>', '  <link rel="stylesheet" href="/assistant.css">\n  <script type="module" src="/assistant/assistant.js"></script>\n</head>');
 }

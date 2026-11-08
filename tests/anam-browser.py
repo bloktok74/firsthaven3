@@ -92,7 +92,12 @@ try:
    page.route('**/api/assistant',lambda route:(legacy.append(route.request.url),route.abort()))
    page.route('https://fonts.googleapis.com/**',lambda route:route.abort())
    page.goto(BASE);page.wait_for_timeout(200)
-   assert 'zero session data retention' in page.locator('#fh-voice-disclosure').text_content()
+   disclosure=page.locator('#fh-voice-disclosure').text_content()
+   if ENV.get('ANAM_TEST_REPORT_RETENTION')=='approved':
+    assert 'Anam may retain other session report data' in disclosure
+    assert 'recording and stored transcripts are disabled' in disclosure
+   else:
+    assert 'zero session data retention' in disclosure
    assert not calls and not page.evaluate('window.qaStarts||0')
    ctas=[page.locator('header a[data-open-escrow]'),page.locator('.hero a[data-open-escrow]')]
    panel=page.locator('#fh-panel');panel.evaluate('(dialog) => { window.qaEscrowDialog = dialog; }')

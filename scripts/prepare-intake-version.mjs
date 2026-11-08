@@ -17,7 +17,11 @@ async function request(path = '', payload) {
     ...(payload && { body: JSON.stringify(payload) }),
     redirect: 'error', signal: AbortSignal.timeout(15000),
   });
-  if (!response.ok) throw Error('ElevenLabs branch setup failed (HTTP ' + response.status + ').');
+  if (!response.ok) {
+    const body = (await response.text()).toLowerCase();
+    const signals = ['versioning is not enabled', 'versioning is not supported', 'versioning is disabled', 'agent_versioning_not_enabled', 'branching', 'upgrade', 'permission', 'subscription', 'not allowed', 'validation', 'name already', 'parent version', 'requires', 'not enabled'].filter(signal => body.includes(signal));
+    throw Error('ElevenLabs ' + (payload ? 'branch creation' : 'configuration check') + ' failed (HTTP ' + response.status + ')' + (signals.length ? ' [' + signals.join(', ') + ']' : '') + '.');
+  }
   return response.json();
 }
 
@@ -41,7 +45,7 @@ if (!branch) {
   const created = await request('/branches', {
     parent_version_id: main.version_id, name,
     description: 'FirstHaven3 protected fictional-name intake only. Do not route default traffic here.',
-    conversation_config: { agent: { ...expected.agent } },
+    conversation_config: { agent: { prompt: { prompt: AGENT_PROMPT } } },
   });
   branch = (await request('/branches')).results.find(item => item.id === created.created_branch_id);
 }

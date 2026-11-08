@@ -1,7 +1,7 @@
 import {createHash,randomBytes} from 'node:crypto';
 import {createAssistantHandler} from './assistant-api.ts';
 import {createAnamQuota} from './anam-quota.ts';
-import {ANAM_DEMO_AVATAR_ID,ANAM_DEMO_MAX_SECONDS,isAnamDemo} from '../shared/anam-demo.ts';
+import {ANAM_DEMO_AVATAR_ID,ANAM_DEMO_MAX_SECONDS,allowsAnamTestReports,isAnamDemo} from '../shared/anam-demo.ts';
 
 type Environment=Record<string,string|undefined>;
 type Quota=ReturnType<typeof createAnamQuota>;
@@ -68,7 +68,7 @@ export function createAnamHandler(env:Environment,{fetcher=fetch,quota,now=Date.
    const response=await fetcher('https://api.anam.ai/v1/auth/session-token',{
     method:'POST',headers:{Authorization:'Bearer '+env.ANAM_API_KEY,'Content-Type':'application/json'},redirect:'error',signal:AbortSignal.timeout(15000),
     body:JSON.stringify({maxSessions:1,expiresInSeconds:120,clientLabel:'first-haven3-fictional-preview',
-     personaConfig:{name:'Jessica — TEST',avatarId:env.ANAM_AVATAR_ID,avatarModel:'cara-4.1-express',maxSessionLengthSeconds:ANAM_DEMO_MAX_SECONDS,zeroDataRetention:true,directorNotes:{presetStyle:'warm',expressivity:0.5}},
+     personaConfig:{name:'Jessica — TEST',avatarId:env.ANAM_AVATAR_ID,avatarModel:'cara-4.1-express',maxSessionLengthSeconds:ANAM_DEMO_MAX_SECONDS,zeroDataRetention:!allowsAnamTestReports(env),directorNotes:{presetStyle:'warm',expressivity:0.5}},
      environment:{elevenLabsAgentSettings:{agentId:env.ELEVENLABS_AGENT_ID,signedUrl:signed.signedUrl}},
      sessionOptions:{dataRetention:{recording:false,transcripts:false},videoWidth:768,videoHeight:1152,videoQuality:'auto'},
     }),
