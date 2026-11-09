@@ -164,8 +164,6 @@ body.film-open .fh-assistant{visibility:hidden;opacity:0;pointer-events:none}
 }
 .fh-anam-preview .fh-feedback { max-height: 54%; overflow: auto; }
 .fh-anam-preview .fh-demo-consent { max-height: 70%; }
-.fh-demo-consent label { display: block; font-weight: 600; font-size: 13px; }
-.fh-demo-consent input { box-sizing: border-box; width: 100%; min-height: 44px; margin-top: 4px; padding: 6px 10px; border: 1px solid #9d928c; border-radius: 6px; background: #fff; font: inherit; }
 .fh-demo-consent button { min-height: 44px; }
 .fh-tester-error { margin: 6px 0 0; color: #a41219; font-size: 12px; }
 .fh-anam-preview .fh-captions { max-height: 4em; font-size: 12px; overflow: auto; }

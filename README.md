@@ -23,10 +23,10 @@ demo. Audio/video recordings and stored transcripts stay off, but Anam may
 retain other session reports. The default requires zero data retention.
 
 The invite-only demo requires `ANAM_TESTER_ACCESS_CODE_SHA256` server-side, the
-hexadecimal SHA-256 of a randomly generated 32-byte base64url code. Give the
-code directly to invited testers and keep it out of Git and URLs. The browser
-checks the code before requesting microphone access and the server checks it
-again before reserving quota. Production requires its own Redis credentials.
+hexadecimal SHA-256 of a randomly generated 32-byte base64url token. Share
+`/#jessica-invite=<token>` privately. The browser removes the fragment and holds
+the invite in page memory, so a reload requires opening the invite again. The
+server checks the token before microphone access and again before reserving quota. Production requires its own Redis credentials.
 Prepare the invite-only agent version with `--tester` and the previously
 verified Preview version as `FIRSTHAVEN3_TESTER_PARENT_VERSION_ID`. Pin the new
 version to the tester deployment only.

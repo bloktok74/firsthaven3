@@ -181,7 +181,7 @@
 </style>
 <script>
   function isHomepageTop() {
-    return !location.hash || location.hash === '#top';
+    return !location.hash || location.hash === '#top' || location.hash.startsWith('#jessica-invite=');
   }
   if (isHomepageTop()) {
     history.scrollRestoration = 'manual';

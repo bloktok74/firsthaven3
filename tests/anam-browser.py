@@ -45,18 +45,12 @@ chunks=[p.name for p in (ROOT/'dist/assistant').glob('chunk-*.js') if 'VIDEO_PLA
 assert len(chunks)==1, chunks
 server=subprocess.Popen(['node','scripts/serve.mjs'],cwd=ROOT,env={**ENV,'PORT':'4185'},stdout=subprocess.DEVNULL,creationflags=subprocess.CREATE_NO_WINDOW if os.name=='nt' else 0)
 report=[]
-def unlock(page, check_wrong=False):
+def unlock(page):
  if not TESTER:return
  gate=page.locator('.fh-demo-consent')
  expect(gate).to_be_visible()
- before=page.evaluate('({mic:qaMicCalls,starts:window.qaStarts||0})')
  assert 'fictional details' in gate.inner_text()
- if check_wrong:
-  page.get_by_label('Tester access code').fill('wrong')
-  page.get_by_role('button',name='Start test call').click()
-  expect(gate.get_by_role('alert')).to_contain_text('code did not match')
-  assert page.evaluate('({mic:qaMicCalls,starts:window.qaStarts||0})')==before
- page.get_by_label('Tester access code').fill(TESTER_CODE)
+ assert gate.locator('input').count()==0
  page.get_by_role('button',name='Start test call').click()
  expect(gate).not_to_be_visible()
 
@@ -124,6 +118,20 @@ try:
    page.goto(BASE+'/#top')
    page.wait_for_function('window.scrollY === 0')
    page.goto(BASE);page.wait_for_timeout(200)
+   if TESTER:
+    page.locator('header a[data-open-escrow]').click()
+    expect(page.locator('.fh-demo-consent').get_by_text('Open your private Jessica invitation link to start the demo.',exact=True)).to_be_visible()
+    expect(page.get_by_role('button',name='Start test call')).not_to_be_visible()
+    assert not calls and not page.evaluate('window.qaMicCalls||0')
+    page.evaluate('(token) => { location.hash = "jessica-invite=" + token; }', 'x'*43)
+    page.wait_for_function('location.hash === "#top"')
+    page.get_by_role('button',name='Start test call').click()
+    expect(page.locator('.fh-demo-consent [role=alert]')).to_contain_text('invitation link is invalid or expired')
+    assert len(calls)==1 and calls[0]['action']=='verify_tester' and not page.evaluate('window.qaMicCalls||0')
+    calls.clear()
+    page.goto(BASE+'/?qa=valid#jessica-invite='+TESTER_CODE)
+    page.wait_for_function('location.hash === "#top" && window.scrollY === 0')
+    assert TESTER_CODE not in page.url
    disclosure=page.locator('#fh-voice-disclosure').text_content()
    if ENV.get('ANAM_TEST_REPORT_RETENTION')=='approved':
     assert 'Anam may retain other session report data' in disclosure
@@ -144,13 +152,13 @@ try:
     else:
      cta.dblclick()
     expect(panel).to_be_visible()
-    unlock(page,index==0)
+    unlock(page)
     assert panel.evaluate('(dialog) => dialog === window.qaEscrowDialog')
     expect(page.locator('.fh-connection')).to_contain_text('Connected to Jessica')
     expect(page.locator('#fh-anam-video')).to_be_visible()
     assert page.locator('#fh-panel .fh-character-portrait').count()==0
     bounds=circular_avatar(page)
-    assert page.url==BASE+'/' or page.url.startswith(BASE+'/#')
+    assert page.url.startswith(BASE+'/')
     assert page.evaluate('qaOptions.api.retry.maxAttempts')==1
     assert page.evaluate('qaInput.getAudioTracks().length')==1
     page.get_by_role('button',name='Mute microphone',exact=True).click();assert page.evaluate('qaMuted')

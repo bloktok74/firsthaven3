@@ -7,6 +7,15 @@ declare const __ANAM_PREVIEW__: boolean;
 declare const __ANAM_PUBLIC_TEST__: boolean;
 declare const __ANAM_TEST_REPORTS__: boolean;
 if (!__ANAM_PREVIEW__) prepareVoiceSDK();
+let inviteCode = '';
+function takeInvite(): boolean {
+  const fragment = location.hash;
+  if (!fragment.startsWith('#jessica-invite=')) return false;
+  inviteCode = /^#jessica-invite=([A-Za-z0-9_-]{43})$/.exec(fragment)?.[1] ?? '';
+  history.replaceState(history.state, '', location.pathname + location.search + '#top');
+  return true;
+}
+if (__ANAM_PUBLIC_TEST__) takeInvite();
 const INTRODUCTION = __ANAM_PUBLIC_TEST__ ? TESTER_INTRODUCTION : PREVIEW_INTRODUCTION;
 const microphoneIcon = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 10v2a7 7 0 0 0 14 0v-2M12 19v3M8 22h8"/><path class="fh-mic-slash" d="M3 3l18 18"/></svg>';
 
@@ -21,8 +30,8 @@ root.innerHTML = `<dialog class="fh-panel" id="fh-panel" aria-modal="true" aria-
 <div class="fh-feedback" hidden><p class="fh-notice" role="alert" hidden></p><button class="fh-recovery" type="button" data-action="voice" hidden>Try again</button></div><p class="fh-connection fh-sr-only" role="status" aria-live="polite">Connecting to Jessica.</p>
 ${__ANAM_PUBLIC_TEST__ ? `<form class="fh-feedback fh-demo-consent" method="post" hidden>
 <p class="fh-notice" id="fh-test-rules">Invited testers only. Use fictional details. This call cannot open an escrow or send an email. ${__ANAM_TEST_REPORTS__ ? 'Anam may retain session reports. Recordings and stored transcripts are off.' : 'Anam uses zero session data retention.'}</p>
-<label for="fh-tester-code">Tester access code</label><input id="fh-tester-code" type="password" required maxlength="64" autocomplete="off" spellcheck="false" aria-describedby="fh-test-rules">
-<p class="fh-tester-error" role="alert" hidden></p><button class="fh-recovery" type="submit">Start test call</button></form>` : ''}
+<p class="fh-invite-required" ${inviteCode ? 'hidden' : ''}>Open your private Jessica invitation link to start the demo.</p>
+<p class="fh-tester-error" role="alert" hidden></p><button class="fh-recovery" type="submit" ${inviteCode ? '' : 'hidden'}>Start test call</button></form>` : ''}
 <p class="fh-captions" role="log" aria-live="polite" hidden></p>
 <section class="fh-access-panel" id="fh-access-panel" aria-labelledby="fh-access-title" hidden><h3 id="fh-access-title" tabindex="-1">Privacy & accessibility</h3><p id="fh-voice-disclosure">This is a fictional test conversation with an AI avatar. ${__ANAM_PUBLIC_TEST__ ? `Starting the test call requests microphone access. Anam renders the avatar and ElevenLabs processes the conversation. Audio/video recording and stored transcripts are disabled. ${__ANAM_TEST_REPORTS__ ? 'Anam may retain other session report data.' : 'Anam uses zero session data retention.'}` : __ANAM_PREVIEW__ ? `Opening Jessica requests microphone access. Anam renders the avatar and ElevenLabs processes the conversation. Audio/video recording and stored transcripts are disabled. ${__ANAM_TEST_REPORTS__ ? 'Anam may retain other session report data. Use fictional details only.' : 'Anam uses zero session data retention.'}` : 'Opening Jessica requests microphone access. ElevenLabs processes the audio; recording is disabled.'} Closing ends the call and clears the local draft.</p><label><input type="checkbox" name="captions"> Show live captions</label><button type="button" data-action="keyboard">Keyboard conversation</button><button type="button" data-action="reset">Clear conversation</button><button type="button" data-action="options-close">Done</button></section>
 <form class="fh-input-form" hidden><label class="fh-sr-only" for="fh-answer">Your message</label><div class="fh-input-row"><input id="fh-answer" name="answer" autocomplete="off" maxlength="240" placeholder="Your message…"><button type="submit" aria-label="Send message">↑</button></div><p class="fh-field-error" role="alert"></p></form>
@@ -277,7 +286,7 @@ function reset(): void {
   if (__ANAM_PUBLIC_TEST__) {
     testerAccessCode = ''; testerCheck?.abort(); testerCheck = null;
     const gate = element<HTMLFormElement>('.fh-demo-consent');
-    gate.reset(); gate.hidden = true;
+    gate.hidden = true;
     element<HTMLButtonElement>('.fh-demo-consent button').disabled = false;
     element<HTMLElement>('.fh-tester-error').hidden = true;
   }
@@ -295,7 +304,7 @@ function reset(): void {
   element<HTMLButtonElement>('[data-action="privacy"]').setAttribute('aria-expanded', 'false');
   voiceButtons(false);
   status.textContent = __ANAM_PUBLIC_TEST__
-    ? 'Enter your private tester access code to speak with Jessica.'
+    ? 'Open your private Jessica invitation link to start the demo.'
     : 'Jessica starts when you open this window. Text is available without a microphone.';
 }
 async function startConversation(mode: 'voice' | 'text'): Promise<void> {
@@ -349,7 +358,7 @@ function open(trigger: HTMLElement): void {
   element<HTMLButtonElement>('.fh-close').focus();
   if (opening && __ANAM_PUBLIC_TEST__) {
     element<HTMLElement>('.fh-demo-consent').hidden = false;
-    element<HTMLInputElement>('#fh-tester-code').focus();
+    if (inviteCode) element<HTMLButtonElement>('.fh-demo-consent button').focus();
   } else if (opening) {
     void startConversation('voice');
   }
@@ -368,13 +377,19 @@ for (const link of document.querySelectorAll<HTMLAnchorElement>('a[data-open-esc
 }
 if (__ANAM_PUBLIC_TEST__) {
   const gate = element<HTMLFormElement>('.fh-demo-consent');
-  const code = element<HTMLInputElement>('#fh-tester-code');
   const submit = element<HTMLButtonElement>('.fh-demo-consent button');
   const error = element<HTMLElement>('.fh-tester-error');
+  const required = element<HTMLElement>('.fh-invite-required');
+  window.addEventListener('hashchange', () => {
+    if (!takeInvite()) return;
+    required.hidden = Boolean(inviteCode);
+    submit.hidden = !inviteCode;
+    error.hidden = true;
+  });
   gate.addEventListener('submit', async event => {
     event.preventDefault();
-    if (!event.isTrusted || testerCheck || testerAccessCode || gate.hidden || panel.inert) return;
-    const accessCode = code.value.trim();
+    if (!event.isTrusted || !inviteCode || testerCheck || testerAccessCode || gate.hidden || panel.inert) return;
+    const accessCode = inviteCode;
     const check = new AbortController();
     testerCheck = check; submit.disabled = true; error.hidden = true;
     try {
@@ -384,13 +399,13 @@ if (__ANAM_PUBLIC_TEST__) {
       });
       if (check.signal.aborted) return;
       if (!response.ok) {
-        error.textContent = response.status === 403 ? 'That code did not match. Check it and try again.' : 'Tester access is temporarily unavailable.';
-        error.hidden = false; code.focus(); return;
+        error.textContent = response.status === 403 ? 'This invitation link is invalid or expired. Ask for a new link.' : 'Tester access is temporarily unavailable.';
+        error.hidden = false; return;
       }
       const result = await response.json();
       if (check.signal.aborted) return;
       if (result.authorized !== true) throw new Error('Tester authorization was unavailable');
-      testerAccessCode = accessCode; code.value = ''; gate.hidden = true;
+      testerAccessCode = accessCode; gate.hidden = true;
       element<HTMLButtonElement>('.fh-close').focus();
       void startConversation('voice');
     } catch {
