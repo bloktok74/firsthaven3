@@ -112,6 +112,17 @@ try:
    page.route('**/api/anam-session',api)
    page.route('**/api/assistant',lambda route:(legacy.append(route.request.url),route.abort()))
    page.route('https://fonts.googleapis.com/**',lambda route:route.abort())
+   page.goto(BASE+'/#top')
+   page.wait_for_function('window.scrollY === 0')
+   assert page.locator('header').bounding_box()['y']==0
+   page.evaluate('window.scrollTo({top:500,behavior:"instant"})')
+   assert page.evaluate('window.scrollY')>0
+   page.reload()
+   page.wait_for_function('window.scrollY === 0')
+   page.goto(BASE+'/#process')
+   page.wait_for_function('window.scrollY > 500')
+   page.goto(BASE+'/#top')
+   page.wait_for_function('window.scrollY === 0')
    page.goto(BASE);page.wait_for_timeout(200)
    disclosure=page.locator('#fh-voice-disclosure').text_content()
    if ENV.get('ANAM_TEST_REPORT_RETENTION')=='approved':

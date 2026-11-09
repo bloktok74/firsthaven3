@@ -179,8 +179,19 @@
     .bar .btn{flex:none;min-height:44px;padding-inline:.75rem;white-space:nowrap}
   }
 </style>
+<script>
+  function isHomepageTop() {
+    return !location.hash || location.hash === '#top';
+  }
+  if (isHomepageTop()) {
+    history.scrollRestoration = 'manual';
+    addEventListener('pageshow', () => {
+      if (isHomepageTop()) window.scrollTo({ top: 0, behavior: 'instant' });
+    });
+  }
+</script>
 </head>
-<body>
+<body id="top">
 <header>
   <div class="wrap bar">
     <a class="logo" href="#top" aria-label="First Haven Escrow, home"><img src="logo.png" alt="First Haven Escrow" width="335" height="71"></a>
@@ -194,7 +205,7 @@
   </div>
 </header>
 
-<main id="top">
+<main>
   <div class="stage">
   <div class="wrap hero">
     <div>
